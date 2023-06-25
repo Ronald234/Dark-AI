@@ -1,0 +1,52 @@
+import requests
+from tqdm import tqdm
+from ipywidgets import Button, HBox, VBox, Label
+import IPython.display as display
+
+# URL
+model_url = 'https://drive.google.com/uc?id=1gO0aX-AUF4M-EjabwDx6jYVSsd7J6I9X'
+vectorizer_url = 'https://drive.google.com/uc?id=1ePpBsPiG80LjY7NN4Q4TK1NdLPAwk2Ol'
+example_1_url = 'https://drive.google.com/uc?id=1omC4UMlFhMImL6WMDrzKmDuNSkVVGtlh'
+example_2_url = 'https://drive.google.com/uc?id=1Y_TqGEMU00xYLajaDgV-DZrhPpGGpxYQ'
+
+def download_file(url, filename):
+    response = requests.get(url, stream=True)
+    total_size_in_bytes = int(response.headers.get('content-length', 0))
+    progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
+    with open(filename, 'wb') as file:
+        for data in response.iter_content(1024):
+            progress_bar.update(len(data))
+            file.write(data)
+    progress_bar.close()
+    if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
+        print("ERROR, something went wrong")
+
+def on_accept_button_clicked(b):
+    print("Downloading model...")
+    download_file(model_url, 'model1.h5')
+    print("Model downloaded successfully.")
+    print("Downloading vectorizer...")
+    download_file(vectorizer_url, 'vectorizer.pkl')
+    print("Vectorizer downloaded successfully.")
+    print("Downloading Example_1.py...")
+    download_file(example_1_url, 'Example_1.py')
+    print("Example_1.py downloaded successfully.")
+    print("Downloading Example_2.py...")
+    download_file(example_2_url, 'Example_2.py')
+    print("Example_2.py downloaded successfully.")
+
+def on_decline_button_clicked(b):
+    print("Alright, better to stay safe than sorry!")
+
+#Botones
+accept_button = Button(description="Yes, I accept")
+decline_button = Button(description="No")
+
+
+accept_button.on_click(on_accept_button_clicked)
+decline_button.on_click(on_decline_button_clicked)
+
+
+print("This program will download the AI model and vectorizer files, along with two example scripts from Google Drive.")
+print("Are you sure you want to proceed? These files could be considered harmful. Please ensure not to execute them directly on your computer to avoid potential harm.")
+HBox([accept_button, decline_button])
