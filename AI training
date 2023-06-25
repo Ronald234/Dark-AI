@@ -1,0 +1,82 @@
+import numpy as np
+import pandas as pd
+import json
+import pickle
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.models import load_model
+import matplotlib.pyplot as plt
+
+
+with open('data.json', 'r') as f:
+    data = json.load(f)
+
+
+df = pd.DataFrame(data)
+
+
+vectorizer = TfidfVectorizer(max_features=1000)
+scripts = vectorizer.fit_transform(df['script']).toarray()
+
+
+with open('vectorizer.pkl', 'wb') as f:
+    pickle.dump(vectorizer, f)
+
+
+num_features = scripts.shape[1]
+
+
+X_train, X_test, y_train, y_test = train_test_split(scripts, df['label'], test_size=0.2, random_state=42)
+
+
+model = Sequential([
+    Dense(100, activation='relu', input_shape=(num_features,)),  # Capa de entrada
+    Dense(1, activation='sigmoid')  # Capa de salida
+])
+
+
+model.compile(
+    optimizer='adam',
+    loss='binary_crossentropy',
+    metrics=['accuracy']
+)
+
+
+model.fit(X_train, y_train, epochs=100, batch_size=32, validation_data=(X_test, y_test))
+
+
+model.save('model1.h5')
+
+
+def predict_code_line(line, model, vectorizer):
+    # Convertir la línea de código en la representación TF-IDF
+    line_tfidf = vectorizer.transform([line]).toarray()
+    # Predecir la clasificación de la línea de código
+    prediction = model.predict(line_tfidf)
+    # Devolver la predicción
+    return prediction[0][0]
+
+
+model = load_model('model1.h5')
+
+with open('vectorizer.pkl', 'rb') as f:
+    vectorizer = pickle.load(f)
+
+
+predictions = []
+with open('keylogger.py', 'r') as file:
+    for line in file:
+        prediction = predict_code_line(line, model, vectorizer)
+        predictions.append(prediction)
+
+
+predictions_df = pd.DataFrame(predictions, columns=['Prediction'])
+
+
+predictions_df.plot(kind='line')
+plt.title('Clasificación de líneas de código')
+plt.xlabel('Número de línea')
+plt.ylabel('Predicción')
+plt.show()
